@@ -1,9 +1,9 @@
 #To use this program run the following from admin command prompt:
-#pip install flask, weather-api
+#pip install flask weather-api
 #
 from flask import Flask, render_template
 import os.path
-
+import requests
 import random
 import pickle
 import atexit
@@ -11,35 +11,23 @@ from threading import Thread
 import time
 import datetime
 
-from weather import Weather
-weather = Weather()
-
-#condition = lookup.condition()
-
 app = Flask(__name__)
-
 
 def backgroundLoop():
     print ("Background loop started.")
     while True:
         time.sleep(1)
-        print(sunriseTime)
+        #print(sunriseTime)
         
-        
-
 def doorCommand(number):
     pass
 
 def doorStatus():
     return 0
 
-def isItSunrise():
-    sunriseTime = datetime.datetime.strptime(getSunrise(), '%H:%M %p').time()
-
-
-
-
-
+#def isItSunrise():
+    #global sunriseTime
+    #sunriseTime = datetime.datetime.strptime(getSunrise(), '%H:%M %p').time()
 
 def saveSettings():
     pickle.dump( settings, open( "save.p", "wb" ) )
@@ -51,39 +39,42 @@ def loadSettings():
     else:
         print ("loading default settings")
         return  {
-    'WOEID' : 2396147
-    }
-    
+            'WOEID' : "2396147"
+        }
+# Lookup WOEID via http://weather.yahoo.com.
+
 settings = loadSettings()
 atexit.register(saveSettings)
     
 def getWeather():
-    # Lookup WOEID via http://weather.yahoo.com.
-    return weather.lookup(settings['WOEID'])
+    baseurl = "https://query.yahooapis.com/v1/public/yql?q="
+    yql_query = "select astronomy, item.condition from weather.forecast where woeid=" + settings['WOEID']
+    yql_url = baseurl + yql_query + "&format=json"
+    r = requests.get(yql_url)
+    if r.status_code != 200:
+        #There was a problem
+        return None
+    #
+    return r.json()['query']['results']['channel']
 
 def getOutsideCondition():
     lookup = getWeather()
-    return lookup.condition()['text']
+    return lookup['item']['condition']['text']
 
 def getInternalTemperature():
     return random.randint(32,100)
 
 def getExternalTemperature():
     lookup = getWeather()
-    return int(lookup.condition()['temp'])
+    return int(lookup['item']['condition']['temp'])
 
 def getSunrise():
     lookup = getWeather()
-    return lookup.astronomy()['sunrise']
+    return lookup['astronomy']['sunrise']
 
 def getSunset():
     lookup = getWeather()
-    return lookup.astronomy()['sunset']
-
-
-
-
-
+    return lookup['astronomy']['sunset']
 
 #Modbus memory map for communication with slave
 #Address   Description
@@ -95,9 +86,6 @@ def getSunset():
 #6         Auger turns remaining (0-100)
 #7         Temperature (0-120) degrees F
        
-
-
-
 @app.route("/")
 def hello():
     templateData = {
@@ -111,7 +99,9 @@ def hello():
     return render_template('main.html', **templateData)
 
 if __name__ == "__main__":
-    t = Thread(target=backgroundLoop)
-    t.start()
-    app.run(host='0.0.0.0', port=80, debug=True)
+    #t = Thread(target=backgroundLoop)
+    #t.start()
+    app.run(host='0.0.0.0', port=8080, debug=True)
+    #w = getWeather()
+    #print(w)
     
