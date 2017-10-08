@@ -113,7 +113,7 @@ void setup() {
      Low latency delays makes the implementation non-standard
      but practically it works with all major modbus master implementations.
   */
- modbus_configure(57600, 1, 0, TOTAL_REGS_SIZE, 0);
+ modbus_configure(57600, 1, 2, TOTAL_REGS_SIZE, 0);
  //Serial.begin(57600);
 }
 
@@ -197,3 +197,4 @@ void loop() {
   
   //Serial.print("Door: "); Serial.println(doorSensor.stable);
 }
+

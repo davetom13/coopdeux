@@ -1,5 +1,5 @@
 #To use this program run the following from admin command prompt:
-#pip install flask weather-api
+#pip install flask pymodbus
 #
 from flask import Flask, render_template
 import os.path
@@ -7,17 +7,39 @@ import requests
 import random
 import pickle
 import atexit
-from threading import Thread
+from threading import Thread, Lock
 import time
 import datetime
+from pymodbus.client.sync import ModbusSerialClient as ModbusClient
+from pymodbus.exceptions import ModbusIOException
+import logging
 
+ioStatus = {'tempC':0.0}
+ioStatusLock = Lock()
+
+#Set up logging
+logging.basicConfig()
+log = logging.getLogger()
+log.setLevel(logging.DEBUG)
+
+#Set up Modbus client to talk to Arduino
+client = ModbusClient(method='rtu',
+                      port='/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AH05HBFT-if00-port0',
+                      timeout=1,
+                      baudrate=57600,
+                      stopbits = 1,
+                      bytesize = 8,
+                      parity = 'N')
+client.connect()
+
+#Set up web server
 app = Flask(__name__)
 
 def backgroundLoop():
     print ("Background loop started.")
     while True:
+        doModbus()
         time.sleep(1)
-        #print(sunriseTime)
         
 def doorCommand(number):
     pass
@@ -62,7 +84,10 @@ def getOutsideCondition():
     return lookup['item']['condition']['text']
 
 def getInternalTemperature():
-    return random.randint(32,100)
+    ioStatusLock.acquire()
+    t = ioStatus['tempC']
+    ioStatusLock.release()
+    return t
 
 def getExternalTemperature():
     lookup = getWeather()
@@ -76,6 +101,8 @@ def getSunset():
     lookup = getWeather()
     return lookup['astronomy']['sunset']
 
+
+
 #Modbus memory map for communication with slave
 #Address   Description
 #1         Motor enable (0=off, 1=on)
@@ -85,6 +112,16 @@ def getSunset():
 #5         Lighting power (0-100%)
 #6         Auger turns remaining (0-100)
 #7         Temperature (0-120) degrees F
+
+def doModbus():
+    try:
+        rr = client.read_holding_registers(0, 8, unit=1)
+        log.debug("Modbus got {}".format(rr.registers))
+        ioStatusLock.acquire()
+        ioStatus['tempC'] = rr.registers[0]/10.0
+        ioStatusLock.release()
+    except Exception as e:
+        log.exception(e)
        
 @app.route("/")
 def hello():
@@ -99,9 +136,8 @@ def hello():
     return render_template('main.html', **templateData)
 
 if __name__ == "__main__":
-    #t = Thread(target=backgroundLoop)
-    #t.start()
+    t = Thread(target=backgroundLoop)
+    t.start()
     app.run(host='0.0.0.0', port=8080, debug=True)
-    #w = getWeather()
-    #print(w)
+
     
