@@ -10,5 +10,12 @@
       <h2>The temperature outside the coop is: {{externaltemperature}} degrees F</h2>
       <p>Sunrise is at:{{sunrise}}</p>
       <p>Sunset is at:{{sunset}}</p>
+	<p>Heater is {{heaterPctOut}}%</p>
+	<p>Lights are {{lightPctOut}}%</p>
+	<p>Door is {{doorStatus}}</p>
+      <form method="POST">
+	<input type="submit" name="doorClose" value="Close Door">
+	<input type="submit" name="doorOpen" value="Open Door">
+	</form>
    </body>
 </html>
