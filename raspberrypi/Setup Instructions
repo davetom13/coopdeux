@@ -1,0 +1,28 @@
+1. Get all available updates
+sudo apt-get update && sudo apt-get upgrade
+
+2. Disable power management for EDUP 8192cu driver
+sudo echo options 8192cu rtw_power_mgnt=0 rtw_enusbss=0 >> /etc/modprobe.d/8192cu.conf
+
+3. Disable onboard wifi
+sudo echo dtoverlay=pi3-disable-wifi >> /boot/config.txt
+
+4. Reboot
+sudo shutdown -r now
+
+5. Change password and set hostname to coopdeux 
+(Start > Preferences > Raspberry Pi Configuration > System)
+
+6. Change locale, timezone, keyboard, wifi country
+(Start > Preferences > Raspberry Pi Configuration > Localisation)
+
+7. Enable SSH interface
+(Start > Preferences > Raspberry Pi Configuration > Interfaces)
+
+8. Install RDP interface
+sudo apt-get install xrdp
+
+
+TODO:
+* Enable WiFi access point on wlan0 (built-in WiFi)
+sudo apt-get install hostapd isc-dhcp-server
